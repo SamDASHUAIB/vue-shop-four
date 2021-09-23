@@ -1,4 +1,4 @@
-# vue-shop-four
+# vue-shop-three
 
 ## Project setup
 ```
