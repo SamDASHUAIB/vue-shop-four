@@ -17,3 +17,12 @@ body,
 .el-table {
   margin-top: 15px;
 }
+.el-steps {
+  margin: 20px 0;
+}
+.el-step__title {
+  font-size: 12px;
+}
+.ql-editor {
+  min-height: 300px !important;
+}
