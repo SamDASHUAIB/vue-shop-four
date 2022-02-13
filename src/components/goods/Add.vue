@@ -17,6 +17,7 @@
         :closable="false"
       ></el-alert>
       <!-- 步骤条区域 -->
+      <!-- active 接收一个 number 表明步骤的 index 从 0 开始 1 2 3 ... -->
       <el-steps
         align-center
         :space="200"
@@ -38,6 +39,11 @@
         label-width="100px"
         label-position="top"
       >
+        <!--
+          before-leave
+            切换标签之前的钩子，若返回 false 或者返回 Promise 且被 reject，则阻止切换。
+         v-model 绑定值，选中选项卡的 name, name 需要是一个 string 类型。
+       -->
         <el-tabs
           :tab-position="'left'"
           v-model="activeIndex"
@@ -215,14 +221,14 @@ export default {
     },
     // 级联选择器选中项变化, 触发
     handleChange() {
+      // 选中的不是第三级节点, 清空选择, 未选中。
       if (this.addForm.goods_cat.length !== 3) {
         this.addForm.goods_cat = []
       }
     },
-    // 级联选择器选中项变化, 触发
     /*
-      activeName 即将离开的标签页名
-      oldActiveName 即将进入的标签页名
+      activeName 即将进入的标签页名
+      oldActiveName 即将离开的标签页名
     */
     beforeTabLeave(activeName, oldActiveName) {
       if (oldActiveName === '0' && this.addForm.goods_cat.length !== 3) {

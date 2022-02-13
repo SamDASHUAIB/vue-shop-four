@@ -299,6 +299,7 @@ export default {
     // 获取动态参数 OR 静态属性的列表数据
     async getParamsData() {
       // 如果选中的不是三级分类, 清空 table 数据源
+      // 提前 return 是一个好习惯
       if (this.selectedCateKeys.length !== 3) {
         this.selectedCateKeys = []
         this.manyTableData = []
@@ -371,6 +372,7 @@ export default {
       if (res.meta.status !== 200) {
         return this.$message.error('获取参数信息失败!')
       }
+      // 回写数据
       this.editForm = res.data
       this.editDialogVisible = true
     },
@@ -381,7 +383,7 @@ export default {
     // 点击编辑按钮, 修改参数信息
     editParams() {
       // 表单预校验
-      this.$refs.editFormRef.validate(async valid => {
+      this.$refsx.editFormRef.validate(async valid => {
         if (!valid) {
           return
         }
@@ -446,7 +448,8 @@ export default {
       // 让文本框自动获得焦点
       /*
         $nextTick
-        当页面上元素被重新渲染之后, 才会指定回调函数中的代码
+        延迟回调
+        数据改变 -》当页面上元素被重新渲染之后, 才会指定回调函数中的代码
         保证一定能够拿到 DOM 或者说 ref
       */
       this.$nextTick(_ => {
@@ -454,6 +457,7 @@ export default {
       })
     },
     handleClosed(index, row) {
+      // 删掉一项
       row.attr_vals.splice(index, 1)
       // 发起请求, 持久化
       this.saveAttrValues(row)

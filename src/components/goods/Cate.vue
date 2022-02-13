@@ -243,8 +243,9 @@ export default {
         // 为当前分类的等级赋值
         return (this.addCateForm.cat_level = this.selectedKeys.length)
       } else {
+        // 没有选中级联选择框中的任何父级分类，表示用户输入的是一级分类，cat_pid 值为 0 cat_level 值为 0
         this.addCateForm.cat_pid = 0
-        this.addCateForm.cat_level = 1
+        this.addCateForm.cat_level = 0
       }
     },
     // 点击添加按钮, 添加新的分类
@@ -270,8 +271,11 @@ export default {
     addCateDialogClosed() {
       this.$refs.addCateRef.resetFields()
       this.selectedKeys = []
-      this.addCateForm.cat_level = 0
-      this.addCateForm.cat_pid = 0
+      this.addCateForm = {
+        cat_name: '',
+        cat_pid: 0,
+        cat_level: 0,
+      }
     },
   },
 }

@@ -17,12 +17,14 @@
         <el-col :span="7">
           <!-- 搜索与添加区域 -->
           <!-- clear 在点击由 clearable 属性生成的清空按钮时触发 -->
+          <!-- 重新拉取数据 + 搜索条件为 '' 空字符串，就是清空功能 -->
           <el-input
             clearable
             @clear="getUserList"
             placeholder="请输入内容"
             v-model="queryInfo.query"
           >
+            <!-- 搜索功能就是以新的查询条件，重新拉取数据 -->
             <el-button
               @click="getUserList"
               slot="append"
@@ -39,7 +41,7 @@
       <!-- 用户列表区域 -->
       <!--
         data: 数据源
-        prop: 每一列的数据源, 键值
+        prop: 每一列的数据源，键值，无需 v-bind
         label: 列名(列标题)
        -->
       <el-table border stripe :data="userList" style="width: 100%">
@@ -51,12 +53,12 @@
         <el-table-column prop="role_name" label="角色"></el-table-column>
         <!-- 状态列, true OR false => 开关 -->
         <!-- 指定了作用域插槽, 删掉 prop 不删, prop 也不会起作用了 -->
+        <!-- v-model 这里设置为 row.mg_state，双向数据绑定的不一定都是 data -->
         <el-table-column label="状态">
-          <template slot-scope="scope">
-            <!-- change 事件同时需要 id 和 mg_state 所以将整个 row 传过去 -->
+          <template v-slot="{ row }">
             <el-switch
-              @change="userStateChange(scope.row)"
-              v-model="scope.row.mg_state"
+              @change="userStateChange(row)"
+              v-model="row.mg_state"
             ></el-switch>
           </template>
         </el-table-column>
@@ -97,10 +99,10 @@
       </el-table>
       <!-- 分页区域 -->
       <!--
-        @size-change 监听 pagesize 改变, 改变每页显示条数
+        @size-change 监听 pagesize 改变, 改变每页显示条数。
         @current-change 监听 页码值 改变
         :current-page 当前的页数, 一般为 1
-        :page-size 当前情况下, 每页显示多少条
+        :page-size 当前情况下, 每页显示多少条。
         layout 分页功能组件
         :total 总数据条数
        -->
@@ -116,13 +118,16 @@
     </el-card>
 
     <!-- 添加用户对话框 -->
-    <el-dialog
+    <add-user
+      :add-dialog-visible.sync="addDialogVisible"
+      @getUserList="getUserList"
+    ></add-user>
+    <!-- <el-dialog
       title="添加用户"
       @close="addDialogClosed"
       :visible.sync="addDialogVisible"
       width="50%"
     >
-      <!-- 内容主体区域 表单 -->
       <el-form
         :model="addForm"
         :rules="addFormRules"
@@ -142,14 +147,13 @@
           <el-input v-model="addForm.mobile"></el-input>
         </el-form-item>
       </el-form>
-      <!-- 底部区域 -->
       <span slot="footer" class="dialog-footer">
         <el-button @click="addDialogVisible = false">取 消</el-button>
         <el-button @click="addUser" type="primary">
           确 定
         </el-button>
       </span>
-    </el-dialog>
+    </el-dialog> -->
     <!-- 修改用户对话框 -->
     <el-dialog
       title="修改用户"
@@ -219,9 +223,14 @@
   </div>
 </template>
 <script>
+import { getUserList, setStateChange } from '../../api/users'
+import AddUser from './components/add-user.vue'
+
 export default {
   name: 'Users',
-  components: {},
+  components: {
+    AddUser,
+  },
   data() {
     // 自定义校验规则 邮箱 手机
     /*
@@ -334,19 +343,14 @@ export default {
   },
   methods: {
     async getUserList() {
-      const { data: res } = await this.$http.get('users', {
-        params: this.queryInfo,
-      })
-      if (res.meta.status !== 200) {
-        return this.$message.error('获取用户列表数据失败!')
-      }
-      this.userList = res.data.users
-      this.total = res.data.total
+      const res = await getUserList(this.queryInfo)
+      this.userList = res.users
+      this.total = res.total
     },
     // 监听 pagesize 改变的事件
     handleSizeChange(newSize) {
       this.queryInfo.pagesize = newSize
-      // pagesize 变化, 重新发起请求
+      // pagesize 变化, 重新发起请求, 拉取数据
       this.getUserList()
     },
     // 监听页码值改变的事件
@@ -358,15 +362,24 @@ export default {
     // 监听 switch 开关状态的改变
     async userStateChange(userInfo) {
       // 将用户的最新状态保存到数据库中
-      const { data: res } = await this.$http.put(
-        `users/${userInfo.id}/state/${userInfo.mg_state}`
-      )
-      if (res.meta.status !== 200) {
-        // 既然失败, 那就回滚操作
+      // const { data: res } = await this.$http.put(
+      //   `users/${userInfo.id}/state/${userInfo.mg_state}`
+      // )
+      // if (res.meta.status !== 200) {
+      //   // 既然失败, 那就回滚操作
+      //   userInfo.mg_state = !userInfo.mg_state
+      //   return this.$message.error('更新用户状态失败!')
+      // }
+      // this.$message.success('更新用户状态成功!')
+      try {
+        await setStateChange(userInfo)
+        this.$message.success('更新用户状态成功!')
+      } catch (error) {
+        // 更新失败, 回滚操作, 恢复点击之前的状态。
         userInfo.mg_state = !userInfo.mg_state
-        return this.$message.error('更新用户状态失败!')
+        this.$message.error('更新用户状态失败!')
+        console.log(error)
       }
-      this.$message.success('更新用户状态成功!')
     },
     // 监听添加用户对话框的关闭事件
     addDialogClosed() {
@@ -400,11 +413,13 @@ export default {
         return this.$message.error('查询用户信息失败!')
       }
       this.$message.success('查询用户信息成功!')
+      // 数据回写
       this.editForm = res.data
       this.editDialogVisible = true
     },
     // 监听修改用户对话框的关闭事件
     editDialogClosed() {
+      this.editForm = {}
       this.$refs.editFormRef.resetFields()
     },
     // 修改用户信息并提交
@@ -456,6 +471,7 @@ export default {
       this.getUserList()
     },
     async setRole(userInfo) {
+      // 为后续点击确定，分配角色，提供数据
       this.userInfo = userInfo
       // 获取所有角色的数据列表
       const { data: res } = await this.$http.get('roles')
@@ -467,7 +483,7 @@ export default {
     },
     // 点击按钮, 分配角色
     async saveRoleInfo() {
-      // 非空检验
+      // 非空检验, 用户需要先选一个值。
       if (!this.selectedRoleId) {
         return this.$message.error('请选择需要分配的角色!')
       }
@@ -486,7 +502,7 @@ export default {
       // 隐藏分配角色对话框
       this.setRoleDialogVisible = false
     },
-    // 监听分配角色的对话框的关闭
+    // 监听分配角色的对话框的关闭，对话框的关闭，需要重置状态。
     setRoleDialogClosed() {
       this.selectedRoleId = ''
       this.userInfo = {}

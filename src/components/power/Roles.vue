@@ -100,7 +100,7 @@
     </el-card>
     <!-- 分配权限的对话框 -->
     <el-dialog
-      title="提示"
+      title="分配权限"
       :visible.sync="setRightDialogVisible"
       width="50%"
       @close="setRightDialogClosed"
@@ -109,8 +109,8 @@
       <!--
         :data 数据源
         :props 属性绑定对象
-          children: 实现父子嵌套用的什么属性
-          label => (标题)文本, 数据字段
+          children: 去哪个属性找子节点
+          label: 去哪个属性找节点的文本
         node-key
           每个树节点用来作为唯一标识的属性 通常而言字段 id 可以代表此节点
         default-expand-all 是否展开所有子节点
@@ -197,13 +197,13 @@ export default {
     async showSetRightDialog(role) {
       // 保存 role 的 id 值, 以供后续使用
       this.roleId = role.id
-      // 获取所有权限的数据
+      // 获取所有权限的数据, 展示 tree
       const { data: res } = await this.$http.get('rights/tree')
       if (res.meta.status !== 200) {
         return this.$message.error('获取权限数据失败!')
       }
       this.rightsList = res.data
-      // 递归获取三级节点的 id 值
+      // 递归获取三级节点的 id 值, 默认选中功能
       this.getLeafKeys(role, this.defKeys)
       this.setRightDialogVisible = true
     },
@@ -220,7 +220,7 @@ export default {
     },
     // 监听分配权限的对话框的关闭
     setRightDialogClosed() {
-      // 对话框关闭时, 将 defKeys 置空, 防止重叠
+      // 对话框关闭时, 将 defKeys 置空, 防止累加
       this.defKeys = []
     },
     // 点击为角色分配权限

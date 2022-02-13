@@ -12,7 +12,10 @@
     <el-container>
       <!-- 侧边栏 -->
       <el-aside :width="isCollapse ? '64px' : '200px'">
-        <!-- 折叠与展开 -->
+        <!--
+          折叠与展开
+          本质上就是，侧边栏的 width 要随菜单区的 width 变化，展开一个宽度（宽），折叠一个宽度（窄）
+         -->
         <div @click="toggleCollapse" class="toggle-button">|||</div>
         <!-- 侧边栏菜单区 -->
         <!--
@@ -48,12 +51,12 @@
               <!-- 文本 -->
               <span>{{ item.authName }}</span>
             </template>
-            <!-- 二级菜单 -->
+            <!-- 二级菜单, 作为最后一级菜单。index 改造为路由模式，值需要使用 '/xxx' -->
             <el-menu-item
-              :index="'/' + itemy.path"
+              :index="`/${itemy.path}`"
               v-for="itemy in item.children"
               :key="itemy.id"
-              @click="saveNavState('/' + itemy.path)"
+              @click="saveNavState(`/${itemy.path}`)"
             >
               <!-- 二级菜单的模板 -->
               <template slot="title">
@@ -75,6 +78,7 @@
   </el-container>
 </template>
 <script>
+import { getMenuList } from '../api/home'
 export default {
   name: 'home',
   components: {},
@@ -111,9 +115,7 @@ export default {
     },
     // 获取所有的菜单数据
     async getMenuList() {
-      const { data: res } = await this.$http.get('menus')
-      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
-      this.menuList = res.data
+      this.menuList = await getMenuList()
     },
     // 点击按钮, 切换菜单的折叠与展开
     toggleCollapse() {
